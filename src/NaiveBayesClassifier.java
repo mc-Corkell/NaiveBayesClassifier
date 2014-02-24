@@ -6,7 +6,6 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeSet;
 
-
 public class NaiveBayesClassifier {
 	
 	public static final String TRAIN_DATA_FILE = "data/train";
@@ -93,14 +92,11 @@ public class NaiveBayesClassifier {
 				 }
 				if (spam) {
 					wordCount.spamTally += count;
-					wordCount.originalSpamTally++; 
 					totalSpamWords += count;
 				} else {
 					wordCount.hamTally += count; 
-					wordCount.originalHamTally++; 
 					totalHamWords += count; 
 				}
-				wordCount.total++; 
 				wordMap.put(w, wordCount); 
 			}
 		}
