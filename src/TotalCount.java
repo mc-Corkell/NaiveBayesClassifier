@@ -6,12 +6,14 @@ public class TotalCount {
 	public double pSpam;
 	public double pHam; 
 	
-	public void computeProbabilities() {
+	public void computeProbability() {
+		total = hamCount + spamCount; 
 		pSpam = (double) spamCount/total;
 		pHam = (double) hamCount/total; 
 	}
 	
 	public String toString(){
-		return ("total count: " + total + ", spamCount: " + spamCount + ", hamCount: " + hamCount);
+		return ("total count: " + total + ", spamCount: " + spamCount + ", hamCount: " + hamCount + 
+				"\n pSpam: " + pSpam + ", pHam: " + pHam);
 	}
 }
