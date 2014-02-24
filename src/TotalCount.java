@@ -12,6 +12,7 @@ public class TotalCount {
 		pHam = (double) hamCount/total; 
 	}
 	
+	@Override
 	public String toString(){
 		return ("total count: " + total + ", spamCount: " + spamCount + ", hamCount: " + hamCount + 
 				"\n pSpam: " + pSpam + ", pHam: " + pHam);

@@ -2,17 +2,21 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner; 
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.Scanner;
 
 public class NaiveBayesClassifier {
 	
 	public static final String TRAIN_DATA_FILE = "data/train";
 	public static final String TEST_DATA_FILE = "data/test";
 
-	
+	public static double ALPHA; 
+
 	public static void main(String[] args) throws FileNotFoundException {
+		if(args.length != 1) {
+			System.out.println("\tPlease pass in the soothing parameter!!!");
+			return; 
+		}
+		ALPHA = Double.parseDouble(args[0]);
 		Map<String, WordCount> wordMap = new HashMap<String, WordCount>(); 
 		TotalCount totalCount = processTrainingData(wordMap);
 		testData(wordMap, totalCount); 
@@ -50,6 +54,7 @@ public class NaiveBayesClassifier {
 				pSpam = pSpam + wordPSpam;
 				pHam = pHam + wordPHam; 
 			}
+			// System.out.println("pHam : " + pHam + " pSpam " + pSpam);
 			boolean guessItsSpam = (pSpam > pHam); 
 			if (targetIsSpam == guessItsSpam) {
 				testCorrect++; 
@@ -104,10 +109,11 @@ public class NaiveBayesClassifier {
 		
 		// Compute probabilities for each word 
 		for (Map.Entry<String, WordCount> entry : wordMap.entrySet()){
-			entry.getValue().computeProbabilitiesLaPlace(totalSpamWords, totalHamWords, vocabularySize);
+			entry.getValue().computeProbabilitiesLaPlace(ALPHA, totalSpamWords, totalHamWords, vocabularySize);
+
 		}
 		totalCount.computeProbability(); 
-		// System.out.println(totalCount);
+		 System.out.println(totalCount);
 		return totalCount; 
 	}
 
