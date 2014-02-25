@@ -4,6 +4,10 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeSet;
+import weka.core.Instances;
+import weka.core.converters.ConverterUtils.DataSource; 
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 
 public class BaggingEnsemble {
@@ -26,23 +30,23 @@ public class BaggingEnsemble {
 	    }
 
 		// Train
+		Instances trainInstances = wekaParseData(TRAIN_DATA); 
 		Set<Classifier> classifierSet = new HashSet<Classifier>(); 
-		Set<String> trainData = parseData(TRAIN_DATA); 
 		for(int i=0; i<numSamplings; i++) {
-			classifierSet.add(makeClassifier(trainData)); 
+			classifierSet.add(new J48Wrapper(trainInstances)); 
 		}
 		
 		// Test
 		Accuracy accuracy = new Accuracy(); 
-		Set<String> testData = parseData(TEST_DATA); 
+		Instances testInstances = wekaParseData(TEST_DATA); 
 		int trueCount = 0; 
-		for(String example: testData) {
-			boolean realYes = (example.charAt(0) == '+'); 
+		for(Instance instance: testInstances) {
+			boolean realYes = (instance.charAt(0) == '+'); 
 			if(realYes) { trueCount++;}
 			accuracy.total++;
 			int yesVotes = 0; 
 			for(Classifier model: classifierSet) {
-				yesVotes += model.vote(example);
+				yesVotes += model.vote(instance);
 			}
 			double majority = (double) yesVotes / classifierSet.size(); 
 			boolean majorityVoteYes = (majority > .5);
@@ -54,24 +58,16 @@ public class BaggingEnsemble {
 		System.out.println(accuracy); 
 	}
 
-	private static Set<String> parseData(String fileName) throws FileNotFoundException {
-		Set<String> data = new TreeSet<String>(); 
-		Scanner fileScanner = new Scanner(new File(fileName)); 
-		while(fileScanner.hasNextLine()) { 
-			String line = fileScanner.nextLine();
-			if(line.length() > 1) {
-				char startChar = line.charAt(0);
-				if(startChar == '+' || startChar == '-') {
-					data.add(line);
-				}
-			}
-		}
-		return data;
+	
+	public static Instances wekaParseData(String file) {
+		 DataSource source = new Datasource(file); 
+		 Instances data = source.getDataSet(); 
+		 // setting class attribute
+		 if(data.classIndex() == -1) {
+			 int classAttributeIndex = 0; // data.numAttributes() - 1
+			 data.setClassIndex(classAttributeIndex);
+		 }
+		 return data; 
 	}
-
-	private static Classifier makeClassifier(Set<String> input) {
-		ID3 tree = new ID3(); 
-		return tree;
-	}
-
+	
 }
