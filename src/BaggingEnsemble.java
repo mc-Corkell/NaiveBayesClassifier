@@ -79,7 +79,7 @@ public class BaggingEnsemble {
 			}
 		}		
 		accuracy.calculatePercent(); 
-		System.out.println(accuracy); 
+		System.out.println("Bagging Ensemble " + accuracy); 
 	}
 
 	

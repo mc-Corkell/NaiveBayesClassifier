@@ -1,4 +1,4 @@
-
+// This is a simple class for tallying accuracy 
 public class Accuracy {
 	public int correct;
 	public int total; 

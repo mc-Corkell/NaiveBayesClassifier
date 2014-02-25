@@ -22,6 +22,7 @@ public class NaiveBayesClassifier {
 		testData(wordMap, totalCount); 
 	}
 	
+	// Classifies each test email based on learner and calculates and prints overall accuracy 
 	public static void testData(Map<String, WordCount> wordMap, TotalCount totalCount) throws FileNotFoundException {
 		int testCorrect = 0; 
 		int testTotal = 0; 
@@ -62,12 +63,11 @@ public class NaiveBayesClassifier {
 			testTotal++;
 		}
 		double accuracy = (double) testCorrect / testTotal; 
-		System.out.println("accuracy " + accuracy); 
+		System.out.println("Naive Bayes Classifier accuracy " + accuracy); 
 	}
 	
-	
-	
-	
+
+	// Reads testData to build wordMap of word frequencies and computer overall spam frequency 
 	public static TotalCount processTrainingData(Map<String, WordCount> wordMap) throws FileNotFoundException {
 		TotalCount totalCount = new TotalCount(); 
 		int totalSpamWords =  0; 
@@ -113,7 +113,7 @@ public class NaiveBayesClassifier {
 
 		}
 		totalCount.computeProbability(); 
-		 System.out.println(totalCount);
+		// System.out.println(totalCount);
 		return totalCount; 
 	}
 
