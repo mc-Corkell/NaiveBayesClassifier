@@ -1,13 +1,17 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeSet;
+
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils.DataSource; 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import weka.core.Attribute;
+import weka.classifiers.Classifier;
+import weka.classifiers.trees.J48;
 
 
 public class BaggingEnsemble {
@@ -31,26 +35,46 @@ public class BaggingEnsemble {
 
 		// Train
 		Instances trainInstances = wekaParseData(TRAIN_DATA); 
+
 		Set<Classifier> classifierSet = new HashSet<Classifier>(); 
 		for(int i=0; i<numSamplings; i++) {
-			classifierSet.add(new J48Wrapper(trainInstances)); 
+			Instances trainInstanceSamples = trainInstances.resample(new Random());
+			try {
+				Classifier c = new J48(); 
+				String[] options = new String[]{"-U"};
+				c.setOptions(options);
+				c.buildClassifier(trainInstanceSamples);
+				classifierSet.add(c);
+			} catch (Exception e) {
+				System.out.println("There was a problem building tree " + i + " in the bag. Uh oh."); 
+			} 
 		}
 		
 		// Test
 		Accuracy accuracy = new Accuracy(); 
+		Attribute yesClass = new Attribute("+"); 
 		Instances testInstances = wekaParseData(TEST_DATA); 
-		int trueCount = 0; 
-		for(Instance instance: testInstances) {
-			boolean realYes = (instance.charAt(0) == '+'); 
-			if(realYes) { trueCount++;}
+		double trueCount = 0; 
+		for(int i=0; i<testInstances.numInstances(); i++) {
+			Instance instance = testInstances.instance(i); 
+			// System.out.println("attribute value " + instance.classValue()); 
+			double thisInstanceValue = instance.classValue(); 
+			trueCount += thisInstanceValue;
+			boolean thisInstanceTrue = (thisInstanceValue == 1.0);
 			accuracy.total++;
-			int yesVotes = 0; 
-			for(Classifier model: classifierSet) {
-				yesVotes += model.vote(instance);
+			double yesVotes = 0; 
+			for(Classifier c: classifierSet) {
+				double vote = 0.0;
+				try {
+					vote = c.classifyInstance(instance);
+				} catch (Exception e) {
+					System.out.println("There was a problem testing an instance w/ a tree");
+				}
+				yesVotes += vote; 
 			}
-			double majority = (double) yesVotes / classifierSet.size(); 
+			double majority = yesVotes / classifierSet.size(); 
 			boolean majorityVoteYes = (majority > .5);
-			if(majorityVoteYes == realYes) {
+			if(majorityVoteYes == thisInstanceTrue) {
 				accuracy.correct++; 
 			}
 		}		
@@ -60,8 +84,18 @@ public class BaggingEnsemble {
 
 	
 	public static Instances wekaParseData(String file) {
-		 DataSource source = new Datasource(file); 
-		 Instances data = source.getDataSet(); 
+		 DataSource source = null;
+		try {
+			source = new DataSource(file);
+		} catch (Exception e) {
+			System.out.println("there was a problem with importing your file"); 
+		} 
+		 Instances data = null;
+		try {
+			data = source.getDataSet();
+		} catch (Exception e) {
+			System.out.println("thre was a problem turning your file into a weka Instance"); 
+		} 
 		 // setting class attribute
 		 if(data.classIndex() == -1) {
 			 int classAttributeIndex = 0; // data.numAttributes() - 1
