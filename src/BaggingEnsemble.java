@@ -35,7 +35,8 @@ public class BaggingEnsemble {
 		Instances trainInstances = wekaParseData(TRAIN_DATA); 
 		Set<Classifier> classifierSet = buildBag(trainInstances, numSamplings); 
 		Instances testInstances = wekaParseData(TEST_DATA); 
-		testData(testInstances, classifierSet); 
+		Accuracy accuracy = testData(testInstances, classifierSet); 
+		System.out.println("Bagging Ensemble with " + numSamplings + " classifiers. " + accuracy); 
 	}
 
 	// Builds and trains bag of n classifiers based on Instances file 
@@ -60,7 +61,7 @@ public class BaggingEnsemble {
 	// Test each example in TEST_DATA file against the classifierSet
 	// Vote by majority 
 	// Prints overall ensemble accuracy 
-	public static void testData(Instances testInstances, Set<Classifier> classifierSet) {
+	public static Accuracy testData(Instances testInstances, Set<Classifier> classifierSet) {
 		Accuracy accuracy = new Accuracy(); 
 		Attribute yesClass = new Attribute("+"); 
 		double trueCount = 0; 
@@ -87,7 +88,7 @@ public class BaggingEnsemble {
 			}
 		}		
 		accuracy.calculatePercent(); 
-		System.out.println("Bagging Ensemble " + accuracy); 
+		return accuracy; 
 	}
 
 	// Returns Instances class for given arff file 

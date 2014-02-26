@@ -109,7 +109,7 @@ public class NaiveBayesClassifier {
 		
 		// Compute probabilities for each word 
 		for (Map.Entry<String, WordCount> entry : wordMap.entrySet()){
-			entry.getValue().computeProbabilitiesLaPlace(ALPHA, totalSpamWords, totalHamWords, vocabularySize);
+			entry.getValue().computeProbabilities(ALPHA, totalSpamWords, totalHamWords, vocabularySize);
 
 		}
 		totalCount.computeProbability(); 
