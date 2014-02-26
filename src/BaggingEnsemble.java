@@ -29,19 +29,23 @@ public class BaggingEnsemble {
 			numSamplings = Integer.parseInt(args[0]);
 	    }
 	    catch( Exception e ) {
-			System.out.println("\t The argument you gave was not an integer. Try again :)");
+			System.out.println("\t The argument you gave was not an integer. Try again.");
 	        return;
 	    }
-
-		// Train
 		Instances trainInstances = wekaParseData(TRAIN_DATA); 
+		Set<Classifier> classifierSet = buildBag(trainInstances, numSamplings); 
+		Instances testInstances = wekaParseData(TEST_DATA); 
+		testData(testInstances, classifierSet); 
+	}
 
+	// Builds and trains bag of n classifiers based on Instances file 
+	public static Set<Classifier> buildBag(Instances trainInstances, int n) {
 		Set<Classifier> classifierSet = new HashSet<Classifier>(); 
-		for(int i=0; i<numSamplings; i++) {
+		for(int i=0; i<n; i++) {
 			Instances trainInstanceSamples = trainInstances.resample(new Random());
 			try {
 				Classifier c = new J48(); 
-				String[] options = new String[]{"-U"};
+				String[] options = new String[]{"-U"}; // no pruning 
 				c.setOptions(options);
 				c.buildClassifier(trainInstanceSamples);
 				classifierSet.add(c);
@@ -49,15 +53,19 @@ public class BaggingEnsemble {
 				System.out.println("There was a problem building tree " + i + " in the bag. Uh oh."); 
 			} 
 		}
+		return classifierSet; 
+	}
 		
-		// Test
+	
+	// Test each example in TEST_DATA file against the classifierSet
+	// Vote by majority 
+	// Prints overall ensemble accuracy 
+	public static void testData(Instances testInstances, Set<Classifier> classifierSet) {
 		Accuracy accuracy = new Accuracy(); 
 		Attribute yesClass = new Attribute("+"); 
-		Instances testInstances = wekaParseData(TEST_DATA); 
 		double trueCount = 0; 
 		for(int i=0; i<testInstances.numInstances(); i++) {
 			Instance instance = testInstances.instance(i); 
-			// System.out.println("attribute value " + instance.classValue()); 
 			double thisInstanceValue = instance.classValue(); 
 			trueCount += thisInstanceValue;
 			boolean thisInstanceTrue = (thisInstanceValue == 1.0);
@@ -82,19 +90,19 @@ public class BaggingEnsemble {
 		System.out.println("Bagging Ensemble " + accuracy); 
 	}
 
-	
+	// Returns Instances class for given arff file 
 	public static Instances wekaParseData(String file) {
-		 DataSource source = null;
+		DataSource source = null;
 		try {
 			source = new DataSource(file);
 		} catch (Exception e) {
-			System.out.println("there was a problem with importing your file"); 
+			System.out.println("There was a problem with importing your file " + file); 
 		} 
 		 Instances data = null;
 		try {
 			data = source.getDataSet();
 		} catch (Exception e) {
-			System.out.println("thre was a problem turning your file into a weka Instance"); 
+			System.out.println("There was a problem turning your file into a weka Instances. This file was the problem: " + file); 
 		} 
 		 // setting class attribute
 		 if(data.classIndex() == -1) {
