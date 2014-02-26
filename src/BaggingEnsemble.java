@@ -11,7 +11,7 @@ import weka.core.Instances;
 import weka.core.converters.ConverterUtils.DataSource; 
 import weka.core.Attribute;
 import weka.classifiers.Classifier;
-import weka.classifiers.trees.J48;
+import weka.classifiers.trees.Id3;
 
 
 public class BaggingEnsemble {
@@ -45,7 +45,7 @@ public class BaggingEnsemble {
 		for(int i=0; i<n; i++) {
 			Instances trainInstanceSamples = trainInstances.resample(new Random());
 			try {
-				Classifier c = new J48(); 
+				Classifier c = new Id3(); 
 				String[] options = new String[]{"-U"}; // no pruning 
 				c.setOptions(options);
 				c.buildClassifier(trainInstanceSamples);
