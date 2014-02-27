@@ -9,21 +9,28 @@ public class NaiveBayesClassifier {
 	public static final String TRAIN_DATA_FILE = "data/train";
 	public static final String TEST_DATA_FILE = "data/test";
 
-	public static double ALPHA; 
+	public static double M; 
 
 	public static void main(String[] args) throws FileNotFoundException {
-		if(args.length != 1) {
+		/*if(args.length != 1) {
 			System.out.println("\tPlease pass in the soothing parameter!!!");
 			return; 
 		}
-		ALPHA = Double.parseDouble(args[0]);
-		Map<String, WordCount> wordMap = new HashMap<String, WordCount>(); 
-		TotalCount totalCount = processTrainingData(wordMap);
-		testData(wordMap, totalCount); 
+		ALPHA = Double.parseDouble(args[0]); */
+		M = .00001; 
+		System.out.println("Naive Bayes Classifier");
+		System.out.println("M \t\t accuracy");
+		for(int i=0; i<20; i++){
+			M = M *10;
+			Map<String, WordCount> wordMap = new HashMap<String, WordCount>(); 
+			TotalCount totalCount = processTrainingData(wordMap);
+			double accuracy = testData(wordMap, totalCount); 
+			System.out.println(M  + "\t\t" + accuracy); 
+		}
 	}
 	
 	// Classifies each test email based on learner and calculates and prints overall accuracy 
-	public static void testData(Map<String, WordCount> wordMap, TotalCount totalCount) throws FileNotFoundException {
+	public static double testData(Map<String, WordCount> wordMap, TotalCount totalCount) throws FileNotFoundException {
 		int testCorrect = 0; 
 		int testTotal = 0; 
 		Scanner fileScanner = new Scanner(new File(TEST_DATA_FILE)); 
@@ -63,7 +70,7 @@ public class NaiveBayesClassifier {
 			testTotal++;
 		}
 		double accuracy = (double) testCorrect / testTotal; 
-		System.out.println("Naive Bayes Classifier accuracy " + accuracy); 
+		return accuracy; 
 	}
 	
 
@@ -105,11 +112,12 @@ public class NaiveBayesClassifier {
 				wordMap.put(w, wordCount); 
 			}
 		}
-		int vocabularySize = wordMap.size(); 
+		int vocabularySize = wordMap.size();
+
 		
 		// Compute probabilities for each word 
 		for (Map.Entry<String, WordCount> entry : wordMap.entrySet()){
-			entry.getValue().computeProbabilities(ALPHA, totalSpamWords, totalHamWords, vocabularySize);
+			entry.getValue().computeProbabilities(M, totalSpamWords, totalHamWords, vocabularySize);
 
 		}
 		totalCount.computeProbability(); 
