@@ -103,17 +103,6 @@ public class NaiveBayesClassifier {
 					wordCount = new WordCount(w); 
 				 }
 				if (spam) {
-					wordCount.spamTally += count;
-					totalSpamWords += count;
-				} else {
-					wordCount.hamTally += count; 
-					totalHamWords += count; 
-				}
-				wordMap.put(w, wordCount); 
-			}
-		}
-		int vocabularySize = wordMap.size();
-
 		
 		// Compute probabilities for each word 
 		for (Map.Entry<String, WordCount> entry : wordMap.entrySet()){
