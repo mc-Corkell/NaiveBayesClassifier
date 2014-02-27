@@ -24,26 +24,54 @@ public class BaggingEnsemble {
 			System.out.println("\tPlease give the number of samplings as an integer argument!!!");
 			return; 
 		}
-		int numSamplings; 
+		int bagSize; 
 		try {
-			numSamplings = Integer.parseInt(args[0]);
+			bagSize = Integer.parseInt(args[0]);
 	    }
 	    catch( Exception e ) {
 			System.out.println("\t The argument you gave was not an integer. Try again.");
 	        return;
 	    }
-		Instances trainInstances = wekaParseData(TRAIN_DATA); 
-		Set<Classifier> classifierSet = buildBag(trainInstances, numSamplings); 
-		Instances testInstances = wekaParseData(TEST_DATA); 
-		Accuracy accuracy = testData(testInstances, classifierSet); 
-		System.out.println("Bagging Ensemble with " + numSamplings + " classifiers. " + accuracy); 
+		int[] bagSizes = new int[]{1, 3, 5, 10, 20};
+		int runs = 100; 
+		System.out.println("Bagging Ensembles");
+		for(int i=0; i<bagSizes.length; i++){
+			bagSize = bagSizes[i];
+			double averageAccuracy = 0; 
+			for(int j=0; j<runs; j++){
+				Instances trainInstances = wekaParseData(TRAIN_DATA); 
+				Set<Classifier> classifierSet = buildBag(trainInstances, bagSize); 
+				Instances testInstances = wekaParseData(TEST_DATA); 
+				double accuracy = testData(testInstances, classifierSet); 
+				averageAccuracy += accuracy;
+			}
+			averageAccuracy = averageAccuracy/runs;
+			System.out.println(runs + "\t\t" + bagSize + "\t\t" + averageAccuracy);
+		}
 	}
 
+	// Creates a new Instances set by random sampling with replacement
+		private static Instances bootstrap(Instances input) {
+			int size = input.numInstances();
+			Random random = new Random(); 
+			Instances newSet = new Instances(input, size); // creates empty set with same header as old set
+			for(int i=0; i<size; i++) {
+				int r = random.nextInt(size);
+				try {
+				    Thread.sleep(0, 1);
+				} catch(InterruptedException ex) {
+				    Thread.currentThread().interrupt();
+				}
+				newSet.add(input.instance(r));
+			}
+			return newSet;
+		}
+		
 	// Builds and trains bag of n classifiers based on Instances file 
 	public static Set<Classifier> buildBag(Instances trainInstances, int n) {
 		Set<Classifier> classifierSet = new HashSet<Classifier>(); 
 		for(int i=0; i<n; i++) {
-			Instances trainInstanceSamples = trainInstances.resample(new Random());
+			Instances trainInstanceSamples = bootstrap(trainInstances);
 			try {
 				Classifier c = new Id3(); 
 				String[] options = new String[]{"-U"}; // no pruning 
@@ -61,7 +89,7 @@ public class BaggingEnsemble {
 	// Test each example in TEST_DATA file against the classifierSet
 	// Vote by majority 
 	// Prints overall ensemble accuracy 
-	public static Accuracy testData(Instances testInstances, Set<Classifier> classifierSet) {
+	public static double testData(Instances testInstances, Set<Classifier> classifierSet) {
 		Accuracy accuracy = new Accuracy(); 
 		Attribute yesClass = new Attribute("+"); 
 		double trueCount = 0; 
@@ -88,7 +116,7 @@ public class BaggingEnsemble {
 			}
 		}		
 		accuracy.calculatePercent(); 
-		return accuracy; 
+		return accuracy.a; 
 	}
 
 	// Returns Instances class for given arff file 

@@ -12,21 +12,21 @@ public class NaiveBayesClassifier {
 	public static double M; 
 
 	public static void main(String[] args) throws FileNotFoundException {
-		/*if(args.length != 1) {
+		if(args.length != 1) {
 			System.out.println("\tPlease pass in the soothing parameter!!!");
 			return; 
 		}
-		ALPHA = Double.parseDouble(args[0]); */
-		M = .00001; 
+		M = Double.parseDouble(args[0]); 
+		// M = .00001; 
 		System.out.println("Naive Bayes Classifier");
 		System.out.println("M \t\t accuracy");
-		for(int i=0; i<20; i++){
-			M = M *10;
+		//for(int i=0; i<20; i++){
+		//	M = M *10;
 			Map<String, WordCount> wordMap = new HashMap<String, WordCount>(); 
 			TotalCount totalCount = processTrainingData(wordMap);
 			double accuracy = testData(wordMap, totalCount); 
 			System.out.println(M  + "\t\t" + accuracy); 
-		}
+	//	}
 	}
 	
 	// Classifies each test email based on learner and calculates and prints overall accuracy 
