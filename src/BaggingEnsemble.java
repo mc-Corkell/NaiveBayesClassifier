@@ -20,7 +20,7 @@ public class BaggingEnsemble {
 	public static final String TEST_DATA = "molecular-biology_promoters_test.arff.arff"; 
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		if(args.length != 1) {
+		/*if(args.length != 1) {
 			System.out.println("\tPlease give the number of samplings as an integer argument!!!");
 			return; 
 		}
@@ -31,24 +31,36 @@ public class BaggingEnsemble {
 	    catch( Exception e ) {
 			System.out.println("\t The argument you gave was not an integer. Try again.");
 	        return;
-	    }
-		Instances trainInstances = wekaParseData(TRAIN_DATA); 
-		Set<Classifier> classifierSet = buildBag(trainInstances, numSamplings); 
-		Instances testInstances = wekaParseData(TEST_DATA); 
-		Accuracy accuracy = testData(testInstances, classifierSet); 
-		System.out.println("Bagging Ensemble with " + numSamplings + " classifiers. " + accuracy); 
+	    }*/
+		System.out.println("Bagging Ensemble with Id3 Trees");
+		int[] bagSizes = new int[] {1, 3, 5, 10, 20};
+		int numSamplings = 0; 
+		int runs = 1000; 
+		for(int j=0; j<bagSizes.length; j++) {
+			double averageAccuracy = 0; 
+			numSamplings = bagSizes[j]; 
+			for(int  i=0; i<runs; i++) {
+				Instances trainInstances = wekaParseData(TRAIN_DATA); 
+				Set<Classifier> classifierSet = buildBag(trainInstances, numSamplings); 
+				Instances testInstances = wekaParseData(TEST_DATA); 
+				Accuracy accuracy = testData(testInstances, classifierSet); 
+				averageAccuracy += accuracy.a; 
+			}
+			averageAccuracy = averageAccuracy / runs; 
+			System.out.println("Average accuracy for " + numSamplings + " over " + runs + " runs is " + averageAccuracy);
+		}
 	}
 
 	// Builds and trains bag of n classifiers based on Instances file 
 	public static Set<Classifier> buildBag(Instances trainInstances, int n) {
 		Set<Classifier> classifierSet = new HashSet<Classifier>(); 
 		for(int i=0; i<n; i++) {
-			Instances trainInstanceSamples = trainInstances.resample(new Random());
+			Instances trainInstanceSample = bootstrap(trainInstances);
 			try {
 				Classifier c = new Id3(); 
 				String[] options = new String[]{"-U"}; // no pruning 
 				c.setOptions(options);
-				c.buildClassifier(trainInstanceSamples);
+				c.buildClassifier(trainInstanceSample);
 				classifierSet.add(c);
 			} catch (Exception e) {
 				System.out.println("There was a problem building tree " + i + " in the bag. Uh oh."); 
@@ -57,7 +69,23 @@ public class BaggingEnsemble {
 		return classifierSet; 
 	}
 		
-	
+	// Creates a new Instances set by random sampling with replacement
+	private static Instances bootstrap(Instances input) {
+		int size = input.numInstances();
+		Random random = new Random(); 
+		Instances newSet = new Instances(input, size); // creates empty set with same header as old set
+		for(int i=0; i<size; i++) {
+			int r = random.nextInt(size);
+			try {
+			    Thread.sleep(1);
+			} catch(InterruptedException ex) {
+			    Thread.currentThread().interrupt();
+			}
+			newSet.add(input.instance(r));
+		}
+		return newSet;
+	}
+
 	// Test each example in TEST_DATA file against the classifierSet
 	// Vote by majority 
 	// Prints overall ensemble accuracy 
