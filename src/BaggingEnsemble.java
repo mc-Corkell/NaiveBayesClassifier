@@ -32,11 +32,12 @@ public class BaggingEnsemble {
 			System.out.println("\t The argument you gave was not an integer. Try again.");
 	        return;
 	    }
-//		int[] bagSizes = new int[]{1, 3, 5, 10, 20};
+	//	int[] bagSizes = new int[]{1, 3, 5, 10, 20};
 		int runs = 100; 
 		System.out.println("Bagging Ensembles");
-//		for(int i=0; i<bagSizes.length; i++){
-			bagSize = bagSizes[i];
+		System.out.println("runs \t\t bagSize \t\t averageAccuracy");
+	//	for(int i=0; i<bagSizes.length; i++){
+	//		bagSize = bagSizes[i];
 			double averageAccuracy = 0; 
 			for(int j=0; j<runs; j++){
 				Instances trainInstances = wekaParseData(TRAIN_DATA); 
@@ -47,37 +48,23 @@ public class BaggingEnsemble {
 			}
 			averageAccuracy = averageAccuracy/runs;
 			System.out.println(runs + "\t\t" + bagSize + "\t\t" + averageAccuracy);
-	//    }
-		}
+	  //  }
 	}
 
-	// Creates a new Instances set by random sampling with replacement
-		private static Instances bootstrap(Instances input) {
-			int size = input.numInstances();
-			Random random = new Random(); 
-			Instances newSet = new Instances(input, size); // creates empty set with same header as old set
-			for(int i=0; i<size; i++) {
-				int r = random.nextInt(size);
-				try {
-				    Thread.sleep(0, 1);
-				} catch(InterruptedException ex) {
-				    Thread.currentThread().interrupt();
-				}
-				newSet.add(input.instance(r));
-			}
-			return newSet;
-		}
 		
 	// Builds and trains bag of n classifiers based on Instances file 
 	public static Set<Classifier> buildBag(Instances trainInstances, int n) {
+		Random random = new Random(); 
 		Set<Classifier> classifierSet = new HashSet<Classifier>(); 
 		for(int i=0; i<n; i++) {
-			Instances trainInstanceSample = bootstrap(trainInstances);
+			// Instances newSample = trainInstances; 
+			Instances newSample = bootstrap(trainInstances, random);
+		//	Instances newSample = trainInstances.resample(random);
 			try {
 				Classifier c = new Id3(); 
 				String[] options = new String[]{"-U"}; // no pruning 
 				c.setOptions(options);
-				c.buildClassifier(trainInstanceSample);
+				c.buildClassifier(newSample);
 				classifierSet.add(c);
 			} catch (Exception e) {
 				System.out.println("There was a problem building tree " + i + " in the bag. Uh oh."); 
@@ -87,17 +74,16 @@ public class BaggingEnsemble {
 	}
 		
 	// Creates a new Instances set by random sampling with replacement
-	private static Instances bootstrap(Instances input) {
+	private static Instances bootstrap(Instances input, Random random) {
 		int size = input.numInstances();
-		Random random = new Random(); 
 		Instances newSet = new Instances(input, size); // creates empty set with same header as old set
 		for(int i=0; i<size; i++) {
 			int r = random.nextInt(size);
-			try {
+		/*	try {
 			    Thread.sleep(1);
 			} catch(InterruptedException ex) {
 			    Thread.currentThread().interrupt();
-			}
+			}*/
 			newSet.add(input.instance(r));
 		}
 		return newSet;
@@ -108,21 +94,23 @@ public class BaggingEnsemble {
 	// Prints overall ensemble accuracy 
 	public static double testData(Instances testInstances, Set<Classifier> classifierSet) {
 		Accuracy accuracy = new Accuracy(); 
-		Attribute yesClass = new Attribute("+"); 
-		double trueCount = 0; 
 		for(int i=0; i<testInstances.numInstances(); i++) {
 			Instance instance = testInstances.instance(i); 
-			double thisInstanceValue = instance.classValue(); 
-			trueCount += thisInstanceValue;
+			double thisInstanceValue = instance.classValue();
+			//System.out.println("this Instance value " + thisInstanceValue);
 			boolean thisInstanceTrue = (thisInstanceValue == 1.0);
 			accuracy.total++;
-			double yesVotes = 0; 
+			double yesVotes = 0.0; 
 			for(Classifier c: classifierSet) {
 				double vote = 0.0;
 				try {
 					vote = c.classifyInstance(instance);
 				} catch (Exception e) {
 					System.out.println("There was a problem testing an instance w/ a tree");
+				}
+				if(Double.isNaN(vote)) {
+					vote = 0.0; 
+				//	System.out.print("x"); 
 				}
 				yesVotes += vote; 
 			}
@@ -132,7 +120,9 @@ public class BaggingEnsemble {
 				accuracy.correct++; 
 			}
 		}		
-		accuracy.calculatePercent(); 
+		accuracy.calculatePercent();
+	//	System.out.println("accuracy " + accuracy.a); 
+
 		return accuracy.a; 
 	}
 
