@@ -5,24 +5,20 @@ public class WordCount {
 	public double pGivenSpam;
 	public double pGivenHam;
 	public String word; 
-		
-	public void computeProbabilitiesLaPlace(double alpha, int totalSpam, int totalHam, int vocabSize){
-		pGivenSpam = (spamTally + alpha)/ (totalSpam + (alpha*vocabSize));
-		pGivenHam = (hamTally + alpha)/ (totalHam + (alpha*vocabSize));
-	//  System.out.println("word " + word + " pGivenSpam: " + pGivenSpam + " pGivenHam " + pGivenHam); 
+	public double[] spamCount; 
+	public double[] hamCount; 
 	
-	}
-	
-	public void computeProbabilities(double m, int totalSpam, int totalHam, int vocabSize){
-		double p = 1.0/vocabSize;
-		pGivenSpam = (spamTally + (m*p))/ (totalSpam + m);
-		pGivenHam = (hamTally + (m*p))/ (totalHam + m);
-	//  System.out.println("word " + word + " pGivenSpam: " + pGivenSpam + " pGivenHam " + pGivenHam); 
-	
+	public void computeProbabilities(int totalSpam, int totalHam, int vocabSize){
+		for(int i=0; i<spamCount.length; i++) {			
+		    spamCount[i] = (spamCount[i])/(spamTally);
+			hamCount[i] = (hamCount[i])/(hamTally); 
+		}
 	}
 
 	public WordCount(String w) {
 		word = w; 
+		spamCount = new double[4];
+		hamCount = new double[4];
 	}
 
 }

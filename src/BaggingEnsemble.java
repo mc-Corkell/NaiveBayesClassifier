@@ -1,6 +1,9 @@
+import java.awt.List;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
@@ -12,57 +15,65 @@ import weka.core.converters.ConverterUtils.DataSource;
 import weka.core.Attribute;
 import weka.classifiers.Classifier;
 import weka.classifiers.trees.Id3;
+import weka.classifiers.trees.REPTree;
 
 
 public class BaggingEnsemble {
 	
 	public static final String TRAIN_DATA = "molecular-biology_promoters_train.arff.arff";
 	public static final String TEST_DATA = "molecular-biology_promoters_test.arff.arff"; 
+	public static String MAX_DEPTH; 
 	
 	public static void main(String[] args) throws FileNotFoundException {
 		if(args.length != 1) {
-			System.out.println("\tPlease give the number of samplings as an integer argument!!!");
+			System.out.println("\tPlease give the maxDepth as an integer argument!!!");
 			return; 
 		}
-		int bagSize; 
 		try {
-			bagSize = Integer.parseInt(args[0]);
+			MAX_DEPTH = args[0];
 	    }
 	    catch( Exception e ) {
-			System.out.println("\t The argument you gave was not an integer. Try again.");
+			System.out.println("\t There was an error w/ your argument. Try again.");
 	        return;
 	    }
 	//	int[] bagSizes = new int[]{1, 3, 5, 10, 20};
+		String[] maxDepths = new String[]{"0", "1", "2", "3"};
+		int bagSize = 1;  // later change to 30 
+		boolean bagging = true; //s et to false if u just want to check out the decision tree by iteself 
 		int runs = 100; 
 		System.out.println("Bagging Ensembles");
-		System.out.println("runs \t\t bagSize \t\t averageAccuracy");
-	//	for(int i=0; i<bagSizes.length; i++){
-	//		bagSize = bagSizes[i];
+		System.out.println("runs\t\tbagSize\t\tmaxDepth\t\taverageAccuracy");
+		for(int i=0; i<maxDepths.length; i++){
+			MAX_DEPTH = maxDepths[i]; 
 			double averageAccuracy = 0; 
-			for(int j=0; j<runs; j++){
+		//	for(int j=0; j<runs; j++){
 				Instances trainInstances = wekaParseData(TRAIN_DATA); 
-				Set<Classifier> classifierSet = buildBag(trainInstances, bagSize); 
+				ArrayList<Classifier> classifierSet = buildBag(trainInstances, bagSize, bagging); 
 				Instances testInstances = wekaParseData(TEST_DATA); 
 				double accuracy = testData(testInstances, classifierSet); 
-				averageAccuracy += accuracy;
-			}
-			averageAccuracy = averageAccuracy/runs;
-			System.out.println(runs + "\t\t" + bagSize + "\t\t" + averageAccuracy);
-	  //  }
+			//	averageAccuracy += accuracy;
+		//	}
+		//	averageAccuracy = averageAccuracy/runs;
+			System.out.println(runs + "\t\t" + bagSize + "\t\t" + MAX_DEPTH + "\t\t" + accuracy);
+			System.out.println();
+	   }
 	}
 
 		
 	// Builds and trains bag of n classifiers based on Instances file 
-	public static Set<Classifier> buildBag(Instances trainInstances, int n) {
+	public static ArrayList<Classifier> buildBag(Instances trainInstances, int n, boolean bagging) {
 		Random random = new Random(); 
-		Set<Classifier> classifierSet = new HashSet<Classifier>(); 
+		ArrayList<Classifier> classifierSet = new ArrayList<Classifier>(); 
 		for(int i=0; i<n; i++) {
-			// Instances newSample = trainInstances; 
-			Instances newSample = bootstrap(trainInstances, random);
-		//	Instances newSample = trainInstances.resample(random);
+			Instances newSample; 
+			if(!bagging) {
+				newSample = trainInstances;
+			} else { 
+				newSample = trainInstances.resample(random);
+			}
 			try {
-				Classifier c = new Id3(); 
-				String[] options = new String[]{"-U"}; // no pruning 
+				Classifier c = new REPTree(); 
+				String[] options = new String[]{"-P", "-L", MAX_DEPTH}; // no pruning , sets max depth to MAX_DEPTH 
 				c.setOptions(options);
 				c.buildClassifier(newSample);
 				classifierSet.add(c);
@@ -72,36 +83,26 @@ public class BaggingEnsemble {
 		}
 		return classifierSet; 
 	}
-		
-	// Creates a new Instances set by random sampling with replacement
-	private static Instances bootstrap(Instances input, Random random) {
-		int size = input.numInstances();
-		Instances newSet = new Instances(input, size); // creates empty set with same header as old set
-		for(int i=0; i<size; i++) {
-			int r = random.nextInt(size);
-		/*	try {
-			    Thread.sleep(1);
-			} catch(InterruptedException ex) {
-			    Thread.currentThread().interrupt();
-			}*/
-			newSet.add(input.instance(r));
-		}
-		return newSet;
-	}
 
 	// Test each example in TEST_DATA file against the classifierSet
 	// Vote by majority 
 	// Prints overall ensemble accuracy 
-	public static double testData(Instances testInstances, Set<Classifier> classifierSet) {
+	public static double testData(Instances testInstances, ArrayList<Classifier> classifierSet) {
+		int[] testClasses = new int[testInstances.numInstances()];
+		int[][] preds = new int[testInstances.numInstances()][classifierSet.size()];
 		Accuracy accuracy = new Accuracy(); 
 		for(int i=0; i<testInstances.numInstances(); i++) {
 			Instance instance = testInstances.instance(i); 
 			double thisInstanceValue = instance.classValue();
-			//System.out.println("this Instance value " + thisInstanceValue);
 			boolean thisInstanceTrue = (thisInstanceValue == 1.0);
+			if(thisInstanceTrue) {
+				testClasses[i] = 1;  // else 0, by default 
+			}
 			accuracy.total++;
 			double yesVotes = 0.0; 
-			for(Classifier c: classifierSet) {
+	//.	for(Classifier c: classifierSet) {
+			for(int j=0; j<classifierSet.size(); j++){
+				Classifier c = classifierSet.get(j); 
 				double vote = 0.0;
 				try {
 					vote = c.classifyInstance(instance);
@@ -110,7 +111,11 @@ public class BaggingEnsemble {
 				}
 				if(Double.isNaN(vote)) {
 					vote = 0.0; 
-				//	System.out.print("x"); 
+				}
+				if(vote == 1.0) {
+					preds[i][j] = 1; 
+				} else{
+					preds[i][j] = 0; 
 				}
 				yesVotes += vote; 
 			}
@@ -119,9 +124,12 @@ public class BaggingEnsemble {
 			if(majorityVoteYes == thisInstanceTrue) {
 				accuracy.correct++; 
 			}
+
 		}		
+		BVL biasVar = new BiasVarianceCalculator().biasVar(testClasses, preds, classifierSet.size(), 2); 
+		System.out.println(biasVar); 
 		accuracy.calculatePercent();
-	//	System.out.println("accuracy " + accuracy.a); 
+		// System.out.println(accuracy); 
 
 		return accuracy.a; 
 	}

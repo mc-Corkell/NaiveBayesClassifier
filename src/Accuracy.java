@@ -11,6 +11,6 @@ public class Accuracy {
 	
 	@Override
 	public String toString() {
-		return ("Accuracy is " + a); 
+		return ("Accuracy is " + correct + " correct and " + total + " total. A is  " + a); 
 	}
 }
