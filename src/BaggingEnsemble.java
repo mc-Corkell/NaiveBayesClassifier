@@ -2,6 +2,7 @@ import java.awt.List;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Random;
@@ -36,25 +37,24 @@ public class BaggingEnsemble {
 			System.out.println("\t There was an error w/ your argument. Try again.");
 	        return;
 	    }
-	//	int[] bagSizes = new int[]{1, 3, 5, 10, 20};
-		String[] maxDepths = new String[]{"0", "1", "2", "3"};
-		int bagSize = 1;  // later change to 30 
-		boolean bagging = true; //s et to false if u just want to check out the decision tree by iteself 
-		int runs = 100; 
-		System.out.println("Bagging Ensembles");
-		System.out.println("runs\t\tbagSize\t\tmaxDepth\t\taverageAccuracy");
+		String[] maxDepths = new String[]{"1", "2", "3", "4", "5", "10", "20"};
+		int bagSize = 30;  
+		boolean bagging = true; //set to false if u just want to check out the decision tree by itself 
+		int runs = 200; 
+		System.out.println("Bagging Ensembles with " + runs + " runs");
 		for(int i=0; i<maxDepths.length; i++){
 			MAX_DEPTH = maxDepths[i]; 
-			double averageAccuracy = 0; 
-		//	for(int j=0; j<runs; j++){
+			BVL overall = new BVL(); 
+			for(int j=0; j<runs; j++){
 				Instances trainInstances = wekaParseData(TRAIN_DATA); 
 				ArrayList<Classifier> classifierSet = buildBag(trainInstances, bagSize, bagging); 
 				Instances testInstances = wekaParseData(TEST_DATA); 
-				double accuracy = testData(testInstances, classifierSet); 
-			//	averageAccuracy += accuracy;
-		//	}
-		//	averageAccuracy = averageAccuracy/runs;
-			System.out.println(runs + "\t\t" + bagSize + "\t\t" + MAX_DEPTH + "\t\t" + accuracy);
+				BVL thisRun = testData(testInstances, classifierSet); 
+				overall.addBVL(thisRun); 
+			}
+			overall.average(runs); 
+			System.out.print("MAX_DEPTH: " + MAX_DEPTH + " ");
+			System.out.println(overall); 
 			System.out.println();
 	   }
 	}
@@ -87,9 +87,10 @@ public class BaggingEnsemble {
 	// Test each example in TEST_DATA file against the classifierSet
 	// Vote by majority 
 	// Prints overall ensemble accuracy 
-	public static double testData(Instances testInstances, ArrayList<Classifier> classifierSet) {
+	public static BVL testData(Instances testInstances, ArrayList<Classifier> classifierSet) {
 		int[] testClasses = new int[testInstances.numInstances()];
 		int[][] preds = new int[testInstances.numInstances()][classifierSet.size()];
+		int[] prediction = new int[testInstances.numInstances()]; 
 		Accuracy accuracy = new Accuracy(); 
 		for(int i=0; i<testInstances.numInstances(); i++) {
 			Instance instance = testInstances.instance(i); 
@@ -124,14 +125,16 @@ public class BaggingEnsemble {
 			if(majorityVoteYes == thisInstanceTrue) {
 				accuracy.correct++; 
 			}
+			prediction[i] = majorityVoteYes? 1 : 0; 
 
-		}		
+		}	
+		//System.out.println("Test Truth\t" + Arrays.toString(testClasses)); 
+		//System.out.println("What we voted\t" + Arrays.toString(prediction)); 
 		BVL biasVar = new BiasVarianceCalculator().biasVar(testClasses, preds, classifierSet.size(), 2); 
-		System.out.println(biasVar); 
 		accuracy.calculatePercent();
-		// System.out.println(accuracy); 
+		biasVar.accuracy = accuracy.a; 
 
-		return accuracy.a; 
+		return biasVar; 
 	}
 
 	// Returns Instances class for given arff file 

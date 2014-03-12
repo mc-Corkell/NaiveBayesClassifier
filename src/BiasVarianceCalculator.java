@@ -1,7 +1,7 @@
 
 public class BiasVarianceCalculator {
 
-	// As adopted from code by Pedro Domingos: http://homes.cs.washington.edu/~pedrod/bvd.c
+	// As adopted from code by Dr. Pedro Domingos: http://homes.cs.washington.edu/~pedrod/bvd.c
 	/* 
 	 * 
 classes:  a vector containing the actual classes of the test examples,
@@ -13,12 +13,12 @@ preds:    an array where preds[i][j] is the class predicted for example i
 
 nTrainSets: the number of training examples used 
 
-numClasses : the number of classes being considered
+numClasses: the number of classes being considered
 
 returns the Bias, Variance and Loss in a BVL object 
 
 	 */
-	public static BVL biasVar(int[] testClasses, int[][] preds, int nTrainSets, int numClasses) { 
+	public BVL biasVar(int[] testClasses, int[][] preds, int nTrainSets, int numClasses) { 
 		int MaxClasses = numClasses; 
 		BVL overall = new BVL(); 
 		
@@ -33,7 +33,7 @@ returns the Bias, Variance and Loss in a BVL object
 		return overall; 
 	} 
 	
-	public static BVL biasVarX(int classx, int[] predsx, int ntrsets, int MaxClasses) {
+	public BVL biasVarX(int classx, int[] predsx, int ntrsets, int MaxClasses) {
 		int[] nclass = new int[MaxClasses]; 
 		int majclass = -1; 
 		int nmax = 0; 
