@@ -11,9 +11,16 @@ public class NaiveBayesClassifier {
 	
 	public static final String TRAIN_DATA_FILE = "promoters_svm_corrected/training.new";
 	public static final String TEST_DATA_FILE = "promoters_svm_corrected/validation.new";
+	public static double M;
 
 
 	public static void main(String[] args) throws FileNotFoundException {
+		/*if(args.length != 1) {
+			System.out.println("\tPlease pass in the soothing parameter!!!");
+			return; 
+		}
+		M = Double.parseDouble(args[0]); */
+		M = .00001; 
 		System.out.println("Naive Bayes Classifier");
 			Map<String, WordCount> wordMap = new HashMap<String, WordCount>(); 
 			TotalCount totalCount = processTrainingData(wordMap);
@@ -39,8 +46,7 @@ public class NaiveBayesClassifier {
 			while (lineScanner.hasNext()){
 				String w = lineScanner.next();
 				String[] parts = w.split(":");
-				w = parts[0];
-				int val = Integer.parseInt(parts[1]); 
+				w = parts[1];
 				WordCount wordCount = wordMap.get(w);
 				double wordPSpam; 
 				double wordPHam; 
@@ -48,8 +54,8 @@ public class NaiveBayesClassifier {
 					wordPSpam = 0; 
 					wordPHam = 0;
 				} else { 
-					wordPSpam = Math.log(wordCount.spamCount[val]); 
-					wordPHam = Math.log(wordCount.hamCount[val]); 
+					wordPSpam = Math.log(wordCount.pGivenSpam); 
+					wordPHam = Math.log(wordCount.pGivenHam); 
 				}
 				pSpam = pSpam + wordPSpam;
 				pHam = pHam + wordPHam; 
@@ -89,19 +95,16 @@ public class NaiveBayesClassifier {
 			while (lineScanner.hasNext()){
 				String w = lineScanner.next();
 				String[] parts = w.split(":");
-				w = parts[0];
-				int val = Integer.parseInt(parts[1]); 
+				w = parts[1];
 				WordCount wordCount = wordMap.get(w);
 				if (wordCount == null) {
 					wordCount = new WordCount(w); 
 				 }
 				if (spam) {
-					wordCount.spamTally++;
-					wordCount.spamCount[val]++;
+					wordCount.spamCount++;
 					totalSpamWords++;
 				} else {
-					wordCount.hamTally++;  
-					wordCount.hamCount[val]++;
+					wordCount.hamCount++;
 					totalHamWords++; 
 				}
 				wordMap.put(w, wordCount); 
@@ -111,7 +114,7 @@ public class NaiveBayesClassifier {
 		
 		// Compute probabilities for each word 
 		for (Map.Entry<String, WordCount> entry : wordMap.entrySet()){
-			entry.getValue().computeProbabilities(totalSpamWords, totalHamWords, vocabularySize);
+			entry.getValue().computeProbabilities(M, totalSpamWords, totalHamWords, vocabularySize);
 
 		}
 		totalCount.computeProbability(); 
