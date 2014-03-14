@@ -25,52 +25,85 @@ public class BaggingEnsemble {
 	public static final String TEST_DATA = "molecular-biology_promoters_test.arff.arff"; 
 	public static String MAX_DEPTH; 
 	
-	public static void main(String[] args) throws FileNotFoundException {
-		if(args.length != 1) {
-			System.out.println("\tPlease give the maxDepth as an integer argument!!!");
-			return; 
-		}
-		try {
-			MAX_DEPTH = args[0];
-	    }
-	    catch( Exception e ) {
-			System.out.println("\t There was an error w/ your argument. Try again.");
-	        return;
-	    }
-		String[] maxDepths = new String[]{"1", "2", "3", "4", "5", "10", "20"};
+	public static void main(String[] args) throws Exception {
+		Random r = new Random(); 
+		String[] maxDepths = new String[]{"1", "2", "3", "5", "10", "20"};
 		int bagSize = 30;  
 		boolean bagging = true; //set to false if u just want to check out the decision tree by itself 
-		int runs = 200; 
-		System.out.println("Bagging Ensembles with " + runs + " runs");
-		for(int i=0; i<maxDepths.length; i++){
-			MAX_DEPTH = maxDepths[i]; 
-			BVL overall = new BVL(); 
-			for(int j=0; j<runs; j++){
-				Instances trainInstances = wekaParseData(TRAIN_DATA); 
-				ArrayList<Classifier> classifierSet = buildBag(trainInstances, bagSize, bagging); 
-				Instances testInstances = wekaParseData(TEST_DATA); 
-				BVL thisRun = testData(testInstances, classifierSet); 
-				overall.addBVL(thisRun); 
+		int groupOfLearnersSize = 30; 
+		Instances trainInstancesD = wekaParseData(TRAIN_DATA); 
+		Instances testInstances = wekaParseData(TEST_DATA); 
+		int numTest = testInstances.numInstances(); 
+		for(int k=0; k < 2; k++) { // this loop determines if base learner is bagged tree or single tree
+			int bagNoBag = k; 
+			if(bagNoBag == 0) { 
+				System.out.println("Using " + groupOfLearnersSize + " decision trees as base learner L ");
+			}else if (bagNoBag == 1){ 
+				System.out.println("Using " + groupOfLearnersSize + " bagged decision tree as base learner L "); 
 			}
-			overall.average(runs); 
-			System.out.print("MAX_DEPTH: " + MAX_DEPTH + " ");
-			System.out.println(overall); 
-			System.out.println();
-	   }
+			System.out.println(); 
+			for(int i=0; i<maxDepths.length; i++){
+				MAX_DEPTH = maxDepths[i]; 
+				ArrayList<ArrayList<Classifier>> groupOfLearners = new ArrayList<ArrayList<Classifier>>(); 
+				for(int j=0; j<groupOfLearnersSize; j++){
+					Instances trainInstancesDPrime = trainInstancesD.resample(r); 
+					ArrayList<Classifier> classifierSet;
+					if (bagNoBag == 0) {
+						classifierSet = buildOneTree(trainInstancesDPrime);  
+					} else {
+						classifierSet = buildBag(trainInstancesDPrime, bagSize); 
+					}
+					groupOfLearners.add(classifierSet); 
+				}
+				int[] testClasses = new int[numTest];
+				int[][] preds = new int[numTest][groupOfLearnersSize];
+				Accuracy overallAccuracy = new Accuracy(); 
+				for(int x = 0; x<numTest; x++) {
+					Instance instanceX = testInstances.instance(x); 
+					boolean thisInstanceTrue = (instanceX.classValue() == 1.0);
+					if(thisInstanceTrue) {
+						testClasses[x] = 1;  // else 0, by default 
+					}
+					for(int j=0; j<groupOfLearnersSize; j++) {
+						ArrayList<Classifier> classifierSet = groupOfLearners.get(j); 
+						int vote = testData(instanceX, classifierSet); 
+						preds[x][j] = vote; 
+						if(vote == testClasses[x]) {
+							overallAccuracy.correct++;
+						}
+						overallAccuracy.total++; 
+					}
+				}
+				BVL biasVar = new BiasVarianceCalculator().biasVar(testClasses, preds, groupOfLearners.size(), 2); 
+				overallAccuracy.calculatePercent();
+
+				System.out.print("MAX_DEPTH: " + MAX_DEPTH + " ");
+				System.out.print(biasVar); 
+				System.out.print(overallAccuracy); 
+				System.out.println(); 
+			}
+			System.out.println(); 
+		}
+	}
+	
+	public static ArrayList<Classifier> buildOneTree(Instances trainInstancesDPrime) throws Exception {
+		ArrayList<Classifier> classifierSet = new ArrayList<Classifier>(); 
+		Classifier c = new REPTree(); 
+		String[] options = new String[]{"-P", "-L", MAX_DEPTH}; // no pruning , sets max depth to MAX_DEPTH 
+		c.setOptions(options);
+		c.buildClassifier(trainInstancesDPrime);
+		classifierSet.add(c);
+		return classifierSet; 
 	}
 
 		
 	// Builds and trains bag of n classifiers based on Instances file 
-	public static ArrayList<Classifier> buildBag(Instances trainInstances, int n, boolean bagging) {
+	public static ArrayList<Classifier> buildBag(Instances trainInstances, int n) {
 		Random random = new Random(); 
 		ArrayList<Classifier> classifierSet = new ArrayList<Classifier>(); 
 		for(int i=0; i<n; i++) {
 			Instances newSample; 
-			if(!bagging) {
-				newSample = trainInstances;
-			} else { 
-				newSample = trainInstances.resample(random);
-			}
+			newSample = trainInstances.resample(random);
 			try {
 				Classifier c = new REPTree(); 
 				String[] options = new String[]{"-P", "-L", MAX_DEPTH}; // no pruning , sets max depth to MAX_DEPTH 
@@ -87,55 +120,27 @@ public class BaggingEnsemble {
 	// Test each example in TEST_DATA file against the classifierSet
 	// Vote by majority 
 	// Prints overall ensemble accuracy 
-	public static BVL testData(Instances testInstances, ArrayList<Classifier> classifierSet) {
-		int[] testClasses = new int[testInstances.numInstances()];
-		int[][] preds = new int[testInstances.numInstances()][classifierSet.size()];
-		int[] prediction = new int[testInstances.numInstances()]; 
-		Accuracy accuracy = new Accuracy(); 
-		for(int i=0; i<testInstances.numInstances(); i++) {
-			Instance instance = testInstances.instance(i); 
-			double thisInstanceValue = instance.classValue();
-			boolean thisInstanceTrue = (thisInstanceValue == 1.0);
-			if(thisInstanceTrue) {
-				testClasses[i] = 1;  // else 0, by default 
+	public static int testData(Instance instance, ArrayList<Classifier> classifierSet) {
+		double yesVotes = 0.0; 
+		for(int j=0; j<classifierSet.size(); j++){
+			Classifier c = classifierSet.get(j); 
+			double vote = 0.0;
+			try {
+				vote = c.classifyInstance(instance);
+			} catch (Exception e) {
+				System.out.println("There was a problem testing an instance w/ a tree");
 			}
-			accuracy.total++;
-			double yesVotes = 0.0; 
-	//.	for(Classifier c: classifierSet) {
-			for(int j=0; j<classifierSet.size(); j++){
-				Classifier c = classifierSet.get(j); 
-				double vote = 0.0;
-				try {
-					vote = c.classifyInstance(instance);
-				} catch (Exception e) {
-					System.out.println("There was a problem testing an instance w/ a tree");
-				}
-				if(Double.isNaN(vote)) {
-					vote = 0.0; 
-				}
-				if(vote == 1.0) {
-					preds[i][j] = 1; 
-				} else{
-					preds[i][j] = 0; 
-				}
-				yesVotes += vote; 
+			if(Double.isNaN(vote)) {
+				vote = 0.0; 
 			}
-			double majority = yesVotes / classifierSet.size(); 
-			boolean majorityVoteYes = (majority > .5);
-			if(majorityVoteYes == thisInstanceTrue) {
-				accuracy.correct++; 
-			}
-			prediction[i] = majorityVoteYes? 1 : 0; 
-
-		}	
-		//System.out.println("Test Truth\t" + Arrays.toString(testClasses)); 
-		//System.out.println("What we voted\t" + Arrays.toString(prediction)); 
-		BVL biasVar = new BiasVarianceCalculator().biasVar(testClasses, preds, classifierSet.size(), 2); 
-		accuracy.calculatePercent();
-		biasVar.accuracy = accuracy.a; 
-
-		return biasVar; 
-	}
+			yesVotes += vote; 
+		}
+		double majority = yesVotes / classifierSet.size(); 
+		boolean majorityVoteYes = (majority > .5);
+		int intVote = majorityVoteYes? 1 : 0; 
+		return intVote; 
+	} 
+	
 
 	// Returns Instances class for given arff file 
 	public static Instances wekaParseData(String file) {
