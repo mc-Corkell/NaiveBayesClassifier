@@ -11,6 +11,11 @@ public class Accuracy {
 	
 	@Override
 	public String toString() {
-		return ("Accuracy: " + a); 
+		return ("Accuracy: " + round2(a)); 
+	}
+	
+	private double round2(double in) {
+		return Math.round(in * 10000.0) / 10000.0;
 	}
 }
+

@@ -26,6 +26,7 @@ public class BaggingEnsemble {
 	public static String MAX_DEPTH; 
 	
 	public static void main(String[] args) throws Exception {
+	
 		Random r = new Random(); 
 		String[] maxDepths = new String[]{"1", "2", "3", "5", "10", "20"};
 		int bagSize = 30;  
@@ -39,7 +40,7 @@ public class BaggingEnsemble {
 			if(bagNoBag == 0) { 
 				System.out.println("Using " + groupOfLearnersSize + " decision trees as base learner L ");
 			}else if (bagNoBag == 1){ 
-				System.out.println("Using " + groupOfLearnersSize + " bagged decision tree as base learner L "); 
+				System.out.println("Using " + groupOfLearnersSize + " bagged decision trees as base learner L "); 
 			}
 			System.out.println(); 
 			for(int i=0; i<maxDepths.length; i++){
@@ -77,7 +78,7 @@ public class BaggingEnsemble {
 				BVL biasVar = new BiasVarianceCalculator().biasVar(testClasses, preds, groupOfLearners.size(), 2); 
 				overallAccuracy.calculatePercent();
 
-				System.out.print("MAX_DEPTH: " + MAX_DEPTH + " ");
+				System.out.print("Depth: " + MAX_DEPTH + "\t\t");
 				System.out.print(biasVar); 
 				System.out.print(overallAccuracy); 
 				System.out.println(); 

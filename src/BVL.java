@@ -6,7 +6,15 @@ public class BVL {
 	public double accuracy; 
 	
 	public String toString() {
-		return ("bias: " + bias + "\t\tvar: " + var + "\t\tloss: " + loss + "\t\t" ); // accuracy: " + accuracy); 
+		double b = round2(bias); 
+		double v = round2(var); 
+		double l = round2(loss); 
+		double a = round2(accuracy);
+		return ("bias: " + b + "\t\tvar: " + v + "\t\tloss: " + l + "\t\t" ); // accuracy: " + accuracy); 
+	}
+	
+	private double round2(double in) {
+		return Math.round(in * 10000.0) / 10000.0;
 	}
 	
 	// adds the values of other to this BVL 
